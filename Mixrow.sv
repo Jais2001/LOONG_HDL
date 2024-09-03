@@ -52,7 +52,7 @@ function [3:0] galiosmultiplication;
                 ans = ans ^ temp_a; 
             end
             if (temp_a[7] == 1'b1) begin
-                temp_a = (temp_a << 1) ^ 8'h13; //  x^4 + x + 1
+                temp_a = (temp_a << 1) ^ 8'h03; //  x^4 + x + 1
             end else begin
                 temp_a = temp_a << 1; 
             end
