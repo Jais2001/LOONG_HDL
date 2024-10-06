@@ -1,11 +1,21 @@
 module LOONG_ENC (
     input wire clk,
     input wire reset,
+    // input wire text_key,
+    input wire do_loong,
     input wire[3:0] plaintext[15:0],//since i need to acess each element i stored in array.
     input wire[3:0] roundKey[15:0],
     output reg[3:0] ciphertext[15:0]
 );
 
+
+// reg[3:0] plaintext[15:0];//since i need to acess each element i stored in array.
+// reg[3:0] roundKey[15:0];
+// wire uart_txt_done;
+wire uart_key_done;
+// wire [7:0] in_text_key;
+wire [7:0] in_key;
+reg [59:0] text_plain;
 reg [3:0] state[0:3][0:3];
 reg [3:0] round_constant[0:3][0:3];
 reg [3:0] state_scell[0:3][0:3];
@@ -21,6 +31,7 @@ reg [3:0] round_key[0:3][0:3];
 integer k,l,c,d;
 reg[5:0] i;
 reg[5:0] g;
+reg[6:0] h;
 reg do_subcell;
 reg sbcell_done;
 reg subcell_cmplt;
@@ -34,14 +45,32 @@ reg mixcoloumn_complete;
 reg mixcoloumn_cmplt;
 
 reg[3:0] loong_states;
-localparam text_key_matrix = 4'b0000;
-localparam AddRoundKey_initial = 4'b0001;
-localparam SubCells_state1 = 4'b0010;
-localparam Mixrow_state = 4'b0011;
-localparam  Mixcoloumn_state = 4'b0100;
-localparam SubCells_state2 = 4'b0101;
-localparam AddRoundKey_Loop = 4'b0110;
-localparam Cipher_state = 4'b0111 ;
+// localparam in_text_to_plaintext = 4'b0000;
+// localparam append_state = 4'b0001;
+// localparam stop_bit = 4'b0010;
+localparam start_loong = 4'b0000;
+localparam text_key_matrix = 4'b0001;
+localparam AddRoundKey_initial = 4'b0010;
+localparam SubCells_state1 = 4'b0011;
+localparam Mixrow_state = 4'b0100;
+localparam  Mixcoloumn_state = 4'b0101;
+localparam SubCells_state2 = 4'b0110;
+localparam AddRoundKey_Loop = 4'b0111;
+localparam Cipher_state = 4'b1000;
+
+// uart_rx #(.CLKS_PER_BIT(434)) uart_in_text(
+//     .i_Clock(clk),
+//     .i_Rx_Serial(text_key),
+//     .o_Rx_DV(uart_txt_done),
+//     .o_Rx_Byte(in_text_key)
+// );
+
+// uart_rx #(.CLKS_PER_BIT(434)) uart_in_key(
+//     .i_Clock(clk),
+//     .i_Rx_Serial(key),
+//     .o_Rx_DV(uart_key_done),
+//     .o_Rx_Byte(in_key)
+// );
 
 text_matrix  matirx_form(
     .clck(clk),
@@ -110,7 +139,7 @@ Mixcoloumn mixcoloumn(
 
 always @(posedge clk or negedge reset) begin
     if(~reset)begin
-        loong_states <= text_key_matrix;
+        loong_states <= start_loong;
         matrix_complete <= 0;
         Rconst_complete <=0;
         do_subcell <= 0;
@@ -118,14 +147,57 @@ always @(posedge clk or negedge reset) begin
         mixrow_complete <= 0;
         mixcoloumn_complete <= 0;  
         g <= 0;
+        h <= 0;
     end
     else begin
+        // case (loong_states)
+        //     in_text_to_plaintext:begin
+        //         if (uart_txt_done) begin
+        //             if (in_text_key == 8'hAA) begin
+        //                 h <= 0;
+        //                 loong_states <= append_state;
+        //             end
+        //             else begin
+        //                 loong_states <= in_text_to_plaintext;
+        //             end
+        //         end
+        //         else begin
+        //             loong_states <= in_text_to_plaintext;
+        //         end
+        //     end
+        //     append_state :begin
+        //         if(uart_txt_done)begin
+        //             // for (h=0;h<16;h=h+1) begin
+        //             plaintext[h] <= in_text_key[3:0];
+        //             roundKey[h]  <= in_text_key[7:4];
+        //             h = h + 1;
+        //             if( h == 4'b1111)
+        //                 loong_states <= stop_bit;
+        //             else begin
+        //                 loong_states <= append_state;
+        //             end
+        //         end
+        //     end
+        //     stop_bit:begin
+        //         if(in_text_key == 8'hFF)begin
+        //             loong_states <= text_key_matrix;
+        //         end
+        //         else begin
+        //             loong_states <= stop_bit;
+        //         end
+        //     end
         case (loong_states)
+            start_loong : begin
+                if (do_loong) begin
+                    loong_states <= text_key_matrix;
+                end
+                else begin
+                    loong_states <= start_loong;
+                end
+            end
             text_key_matrix:begin //0 state
-                // matrix_complete <= matrix_cmplt;
                 if(matrix_cmplt == 1)begin
                     state <= plain_matrix;
-                    // matrix_complete <= 0;
                     i <= 0;
                     loong_states <= AddRoundKey_initial;
                 end 
@@ -134,14 +206,12 @@ always @(posedge clk or negedge reset) begin
                 end                
             end 
             AddRoundKey_initial:begin //1 state
-                // Rconst_complete <= Rconst_cmplt;
                 if (Rconst_cmplt == 1)begin
                     for (k=0;k<4;k=k+1) begin
                         for (l=0;l<4;l=l+1) begin
                             state[k][l] <= plain_matrix[k][l] ^ round_key[k][l] ^ round_constant[k][l];
                         end
                     end
-                    // Rconst_complete <=0;
                     do_subcell <= 1;
                     loong_states <= SubCells_state1;
                 end
@@ -150,11 +220,9 @@ always @(posedge clk or negedge reset) begin
                 end
             end
             SubCells_state1 : begin //2 state
-                // subcell_cmplt <= sbcell_done;
                 if (sbcell_done == 1) begin
                     state_subcell <= state_scell;
                     do_subcell <= 0;
-                    // subcell_cmplt <= 0;   
                     loong_states <= Mixrow_state;
                 end
                 else begin
@@ -162,10 +230,8 @@ always @(posedge clk or negedge reset) begin
                 end           
             end
             Mixrow_state : begin //3 state
-                // mixrow_complete <= mixrow_cmplt;
                 if(mixrow_cmplt == 1 )begin
                     state_mixrow <= ste_mxrow;
-                    // mixrow_complete <= 0;
                     loong_states <= Mixcoloumn_state;
                 end
                 else begin
@@ -175,9 +241,10 @@ always @(posedge clk or negedge reset) begin
             Mixcoloumn_state : begin //4 state
                 // mixcoloumn_complete <= mixcoloumn_cmplt;
                 if(mixcoloumn_cmplt == 1)begin
-                    state_mixcoloumn <= ste_mxcoloumn;
+                    // state_mixcoloumn <= ste_mxcoloumn;
+                    state <= ste_mxcoloumn;
                     // mixcoloumn_complete <= 0;
-                    state <= state_mixcoloumn;
+                    // state <= state_mixcoloumn;
                     do_subcell <= 1;
                     loong_states <= SubCells_state2;
                 end
@@ -189,8 +256,7 @@ always @(posedge clk or negedge reset) begin
                 // subcell_cmplt <= sbcell_done;
                 if (sbcell_done == 1) begin
                     state_subcell2 <= state_scell;
-                    do_subcell <= 0;
-                    // subcell_cmplt <= 0;   
+                    do_subcell <= 0;  
                     i <= i + 1;
                     loong_states <= AddRoundKey_Loop;
                 end
@@ -199,7 +265,6 @@ always @(posedge clk or negedge reset) begin
                 end     
             end
             AddRoundKey_Loop:begin //6 state
-                // Rconst_complete <= Rconst_cmplt;
                 if(Rconst_cmplt == 1)begin
                     for (k=0;k<4;k=k+1) begin
                         for (l=0;l<4;l=l+1) begin
@@ -226,9 +291,10 @@ always @(posedge clk or negedge reset) begin
                         g = g + 1;
                     end
                 end
+                loong_states <= start_loong;
             end
             default: begin
-                loong_states <= text_key_matrix;
+                loong_states <= start_loong;
             end
         endcase
     end    

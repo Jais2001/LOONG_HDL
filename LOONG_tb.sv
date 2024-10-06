@@ -1,58 +1,88 @@
 `timescale 1ns/1ps
 module LOONG_tb();
+parameter c_BIT_PERIOD      = 8680;
 
 reg clock = 0;
 reg rst;
-reg [3:0]plaintxt[15:0];
-reg [3:0] RKey[15:0];
+// reg [3:0]plaintxt[15:0];
+// reg [3:0] RKey[15:0];
+reg text_key;
 wire[3:0] Ciphertext[15:0];
 
-LOONG_ENC DUT(
-    .clk(clock),
+TopLOONG DUT(
+    .clck(clock),
     .reset(rst),
-    .plaintext(plaintxt),
-    .roundKey(RKey),
+    .text_key_in(text_key),
     .ciphertext(Ciphertext)
 );
 
+task  WRITE_UART;
+    input[7:0] in_data;
+    // input[7:0] in_text;
+    integer i;
+    begin
+        text_key = 1'b0;
+        // key = 1'b0;
+        #(c_BIT_PERIOD);
+        #1000;
+        for (i=0;i<8;i=i+1) begin
+            text_key = in_data[i];
+            // key = in_text[i];
+            $display("WRITE_UART - Assigning bit %0d: text = %b", i, text_key);
+            #(c_BIT_PERIOD);
+        end
+        text_key = 1'b1;
+        // key = 1'b1;
+        #(c_BIT_PERIOD);
+    end
+endtask
+
 initial begin
     rst = 0;
-    #80
+    #1000;
     rst = 1;
-    #10
-    plaintxt[0] <= 4'b0000;
-    plaintxt[1] <= 4'b0000;
-    plaintxt[2] <= 4'b0000;
-    plaintxt[3] <= 4'b0000;
-    plaintxt[4] <= 4'b0000;
-    plaintxt[5] <= 4'b0000;
-    plaintxt[6] <= 4'b0000;
-    plaintxt[7] <= 4'b0000;
-    plaintxt[8] <= 4'b0000;
-    plaintxt[9] <= 4'b0000;
-    plaintxt[10] <= 4'b0000;
-    plaintxt[11] <= 4'b0000;
-    plaintxt[12] <= 4'b0000;
-    plaintxt[13] <= 4'b0000;
-    plaintxt[14] <= 4'b0000;
-    plaintxt[15] <= 4'b0000;
+    #1000;
+    repeat(15) @(posedge clock);
 
-    RKey[0] <= 4'b0000;
-    RKey[1] <= 4'b0000;
-    RKey[2] <= 4'b0000;
-    RKey[3] <= 4'b0000;
-    RKey[4] <= 4'b0000;
-    RKey[5] <= 4'b0000;
-    RKey[6] <= 4'b0000;
-    RKey[7] <= 4'b0000;
-    RKey[8] <= 4'b0000;
-    RKey[9] <= 4'b0000;
-    RKey[10] <= 4'b0000;
-    RKey[11] <= 4'b0000;
-    RKey[12] <= 4'b0000;
-    RKey[13] <= 4'b0000;
-    RKey[14] <= 4'b0000;
-    RKey[15] <= 4'b0000;
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'hAA); //header
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00);  
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00);  
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00);  
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00);  
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00);  
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00);
+    repeat(15) @(posedge clock);
+    WRITE_UART(8'h00); 
+    repeat(15) @(posedge clock);
+    // WRITE_UART(8'h10); 
+    // repeat(15) @(posedge clock);
+    WRITE_UART(8'hFF); //footer
+    repeat(100000) @(posedge clock);
 end
 
 

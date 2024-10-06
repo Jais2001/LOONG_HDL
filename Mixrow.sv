@@ -15,10 +15,10 @@ integer i,j,k,l;
 
 reg [3:0] mixrow_matrix[3:0][3:0];
 initial begin
-    mixrow_matrix[0][0] <= 4'd1;  mixrow_matrix[0][1] <= 4'd4;  mixrow_matrix[0][2] <= 4'd9;  mixrow_matrix[0][3] <= 4'd13;
-    mixrow_matrix[1][0] <= 4'd4;  mixrow_matrix[1][1] <= 4'd1;  mixrow_matrix[1][2] <= 4'd13; mixrow_matrix[1][3] <= 4'd9;
-    mixrow_matrix[2][0] <= 4'd9;  mixrow_matrix[2][1] <= 4'd13; mixrow_matrix[2][2] <= 4'd1;  mixrow_matrix[2][3] <= 4'd4;
-    mixrow_matrix[3][0] <= 4'd13; mixrow_matrix[3][1] <= 4'd9;  mixrow_matrix[3][2] <= 4'd4;  mixrow_matrix[3][3] <= 4'd1;
+    mixrow_matrix[0][0] = 4'd1;  mixrow_matrix[0][1] = 4'd4;  mixrow_matrix[0][2] = 4'd9;  mixrow_matrix[0][3] = 4'd13;
+    mixrow_matrix[1][0] = 4'd4;  mixrow_matrix[1][1] = 4'd1;  mixrow_matrix[1][2] = 4'd13; mixrow_matrix[1][3] = 4'd9;
+    mixrow_matrix[2][0] = 4'd9;  mixrow_matrix[2][1] = 4'd13; mixrow_matrix[2][2] = 4'd1;  mixrow_matrix[2][3] = 4'd4;
+    mixrow_matrix[3][0] = 4'd13; mixrow_matrix[3][1] = 4'd9;  mixrow_matrix[3][2] = 4'd4;  mixrow_matrix[3][3] = 4'd1;
 end
 
 // function [7:0] galiosmultiplication;
@@ -42,22 +42,48 @@ end
 //     end
 // endfunction
 
+// function [3:0] galiosmultiplication;
+//     input [3:0] a,b;
+//     begin
+//         ans = 8'b00000000; 
+//         temp_a = {4'b0000, a}; 
+//         for (i = 0; i < 4; i = i + 1) begin
+//             if (b[i] == 1'b1) begin
+//                 ans = ans ^ temp_a[3:0]; 
+//             end
+//             if (temp_a[7] == 1'b1) begin
+//                 temp_a = (temp_a << 1) ^ 8'h13; //  x^4 + x + 1
+//             end else begin
+//                 temp_a = temp_a << 1; 
+//             end
+//         end
+//         galiosmultiplication = ans[3:0]; //ans % 4'b1000; //
+//     end
+// endfunction
+
 function [3:0] galiosmultiplication;
     input [3:0] a, b;
+    reg [3:0] temp_a;
+    reg [3:0] temp_b;
+    reg [3:0] ans;
+    reg [3:0] check;
+    integer i;
     begin
-        ans = 8'b00000000; 
-        temp_a = {4'b0000, a}; 
+        ans = 4'b0000;
+        temp_a = a;
+        temp_b = b;
         for (i = 0; i < 4; i = i + 1) begin
-            if (b[i] == 1'b1) begin
-                ans = ans ^ temp_a; 
+            if (temp_b[0] == 1'b1) begin
+                ans = ans ^ temp_a;
             end
-            if (temp_a[7] == 1'b1) begin
-                temp_a = (temp_a << 1) ^ 8'h03; //  x^4 + x + 1
-            end else begin
-                temp_a = temp_a << 1; 
+            check = temp_a & 4'b1000; // Check if MSB of temp_a is set
+            temp_a = temp_a << 1;
+            if (check == 4'b1000) begin
+                temp_a = temp_a ^ 4'b0011; // XOR with irreducible polynomial
             end
+            temp_b = temp_b >> 1;
         end
-        galiosmultiplication = ans[3:0]; //ans % 4'b1000; //
+        galiosmultiplication = ans % 16; // Ensure the result is within 4 bits
     end
 endfunction
 
