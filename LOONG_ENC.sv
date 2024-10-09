@@ -5,7 +5,7 @@ module LOONG_ENC (
     input wire do_loong,
     input wire[3:0] plaintext[15:0],//since i need to acess each element i stored in array.
     input wire[3:0] roundKey[15:0],
-    output reg[3:0] ciphertext[15:0]
+    output reg[3:0] ciphertext[0:15]
 );
 
 
