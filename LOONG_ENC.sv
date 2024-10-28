@@ -10,6 +10,9 @@ module LOONG_ENC (
 wire uart_key_done;
 wire [7:0] in_key;
 
+reg do_mixrow;
+reg r_Rconst_cmplt;
+reg do_round;
 reg[3:0] r_ciphertext[0:15];
 reg [59:0] text_plain;
 reg [3:0] state[0:3][0:3];
@@ -24,8 +27,9 @@ reg [3:0] state_mixcoloumn[0:3][0:3];
 reg [3:0] plain_matrix[0:3][0:3];
 reg [3:0] round_key[0:3][0:3];
 
-integer k,l,c,d;
-reg[5:0] i;
+reg[3:0] round_key_buff[0:3][0:3];
+
+integer k,l,c,d,i,m;
 reg[5:0] g;
 reg[6:0] h;
 reg do_subcell;
@@ -39,6 +43,8 @@ reg mixrow_complete;
 reg mixrow_cmplt; 
 reg mixcoloumn_complete;
 reg mixcoloumn_cmplt;
+
+reg[5:0] LOONG_Counter = 6'd0; // counter to run 16 rounds
 
 reg[3:0] loong_states;
 localparam start_loong = 4'b0000;
@@ -66,7 +72,7 @@ text_matrix  matirx_form(
 round_const rnd_cnst(
     .clock(i_clk),
     .rst(i_reset),
-    .j(i),
+    .strt_round(do_round),
     .round_cnst(round_constant),
     .Rconst_done(Rconst_cmplt)
 );
@@ -84,6 +90,7 @@ Mixrow mixrow(
     .clock(i_clk),
     .rst(i_reset),
     .st_mixrow(state_subcell),
+    .do_mixrow(do_mixrow),
     .mixr_state(ste_mxrow),
     .mixrow_done(mixrow_cmplt)
 );
@@ -96,19 +103,44 @@ Mixcoloumn mixcoloumn(
     .mixcoloumn_done(mixcoloumn_cmplt)
 );
 
+always @(posedge i_clk or negedge i_reset ) begin
+    if (~i_reset) begin
+        r_Rconst_cmplt <= 0;
+    end
+    else begin
+        r_Rconst_cmplt <= Rconst_cmplt;
+    end
+end
+
+always @(posedge i_clk or negedge i_reset ) begin
+    if (~i_reset) begin
+        for (i = 0; i < 4; i = i + 1) begin
+            for (m = 0; m < 4; m = m + 1) begin
+                round_key_buff[i][m] <= 0;
+            end
+        end
+    end
+    else begin
+        if (~r_Rconst_cmplt && Rconst_cmplt) begin
+            round_key_buff <= round_key;
+        end
+    end
+end
+
 always @(posedge i_clk or negedge i_reset) begin
     if(~i_reset)begin
         loong_states <= start_loong;
-        matrix_complete <= 0;
-        Rconst_complete <=0;
-        do_subcell <= 0;
-        subcell_cmplt <= 0; 
-        mixrow_complete <= 0;
-        mixcoloumn_complete <= 0;  
+        do_subcell <= 0; 
+        do_round <= 0;
+        do_mixrow <= 0;
+        LOONG_Counter <= 6'd0;  
         g <= 0;
         h <= 0;
     end
     else begin
+        do_round <= 0;
+        do_subcell <= 0;
+        do_mixrow <= 0;
         case (loong_states)
             start_loong : begin
                 if (i_do_loong) begin
@@ -118,21 +150,21 @@ always @(posedge i_clk or negedge i_reset) begin
                     loong_states <= start_loong;
                 end
             end
-            text_key_matrix:begin //0 state
+            text_key_matrix:begin //1 state
                 if(matrix_cmplt == 1)begin
                     state <= plain_matrix;
-                    i <= 0;
+                    do_round <= 1;
                     loong_states <= Add_RoundKey_initial;
                 end 
                 else begin
                     loong_states <= text_key_matrix;
                 end                
             end 
-            Add_RoundKey_initial:begin //1 state
+            Add_RoundKey_initial:begin //2 state
                 if (Rconst_cmplt == 1)begin
                     for (k=0;k<4;k=k+1) begin
                         for (l=0;l<4;l=l+1) begin
-                            state[k][l] <= plain_matrix[k][l] ^ round_key[k][l] ^ round_constant[k][l];
+                            state[k][l] <= plain_matrix[k][l] ^ round_key_buff[k][l] ^ round_constant[k][l];
                         end
                     end
                     do_subcell <= 1;
@@ -142,17 +174,17 @@ always @(posedge i_clk or negedge i_reset) begin
                     loong_states <= Add_RoundKey_initial;
                 end
             end
-            SubCells_state1 : begin //2 state
+            SubCells_state1 : begin //3 state
                 if (sbcell_done == 1) begin
                     state_subcell <= state_scell;
-                    do_subcell <= 0;
+                    do_mixrow <= 1;
                     loong_states <= Mixrow_state;
                 end
                 else begin
                     loong_states <= SubCells_state1;
                 end           
             end
-            Mixrow_state : begin //3 state
+            Mixrow_state : begin //4 state
                 if(mixrow_cmplt == 1 )begin
                     state_mixrow <= ste_mxrow;
                     loong_states <= Mixcoloumn_state;
@@ -161,13 +193,9 @@ always @(posedge i_clk or negedge i_reset) begin
                     loong_states <= Mixrow_state;
                 end
             end
-            Mixcoloumn_state : begin //4 state
-                // mixcoloumn_complete <= mixcoloumn_cmplt;
+            Mixcoloumn_state : begin //5 state
                 if(mixcoloumn_cmplt == 1)begin
-                    // state_mixcoloumn <= ste_mxcoloumn;
                     state <= ste_mxcoloumn;
-                    // mixcoloumn_complete <= 0;
-                    // state <= state_mixcoloumn;
                     do_subcell <= 1;
                     loong_states <= SubCells_state2;
                 end
@@ -175,27 +203,25 @@ always @(posedge i_clk or negedge i_reset) begin
                     loong_states <= Mixcoloumn_state;
                 end               
             end
-            SubCells_state2 : begin //5 state
-                // subcell_cmplt <= sbcell_done;
+            SubCells_state2 : begin //6 state
                 if (sbcell_done == 1) begin
                     state_subcell2 <= state_scell;
-                    do_subcell <= 0;  
-                    i <= i + 1;
+                    do_round <= 1;  
                     loong_states <= Add_RoundKey_Loop;
                 end
                 else begin
                     loong_states <= SubCells_state2;
                 end     
             end
-            Add_RoundKey_Loop:begin //6 state
+            Add_RoundKey_Loop:begin //7 state
                 if(Rconst_cmplt == 1)begin
                     for (k=0;k<4;k=k+1) begin
                         for (l=0;l<4;l=l+1) begin
-                            state[k][l] <= state_subcell2[k][l] ^ round_key[k][l] ^ round_constant[k][l];
+                            state[k][l] <= state_subcell2[k][l] ^ round_key_buff[k][l] ^ round_constant[k][l];
                         end
                     end
-                    // Rconst_complete <= 0;
-                    if (i <= 15) begin // 16 rounds
+                    if (LOONG_Counter <= 6'd16) begin // 16 rounds
+                        LOONG_Counter <= LOONG_Counter + 1;
                         do_subcell <= 1;
                         loong_states <= SubCells_state1;
                     end
@@ -207,7 +233,7 @@ always @(posedge i_clk or negedge i_reset) begin
                     loong_states <= Add_RoundKey_Loop;
                 end
             end
-            Cipher_state : begin // 7 state
+            Cipher_state : begin // 8 state
                 for(c=0;c<4;c=c+1)begin
                     for (d=0;d<4;d=d+1) begin
                         r_ciphertext[g] <= state[c][d];

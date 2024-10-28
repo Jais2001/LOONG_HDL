@@ -1,16 +1,23 @@
 module round_const (
     input wire clock,
     input wire rst,
-    input wire[5:0] j,
+    input wire strt_round,
     output reg [3:0]round_cnst[0:3][0:3],
     output reg Rconst_done 
 );
 
-// reg[1:0]a;
-// reg[1:0]b;
+integer i, m;
 reg[7:0]rc = 0;
 reg[5:0] do_round_const;
 reg[6:0] roundcnst [0:32];
+
+reg [5:0] j;
+
+reg[2:0] round_state;
+localparam  initial_state = 3'd0;
+localparam  do_roundcnst  = 3'd1;
+localparam  update_round  = 3'd2;
+localparam  done_round = 3'd3;  
 
 initial begin
     roundcnst[0] = 8'h01;
@@ -49,30 +56,58 @@ initial begin
 end
 always @(posedge clock or negedge rst) begin
     if (~rst) begin
-        Rconst_done <= 0;       
+        Rconst_done <= 0;  
+        j <= 0;     
     end
     else begin
-        if(Rconst_done == 0)begin
-            round_cnst[0][0] <= 0;
-            round_cnst[0][1] <= 0;
-            round_cnst[0][2] <= 0;
-            round_cnst[0][3] <= roundcnst[j][5] || roundcnst[j][4] || roundcnst[j][3];   // OR operator
-            round_cnst[1][0] <= 0;
-            round_cnst[1][1] <= 0;
-            round_cnst[1][2] <= 1;
-            round_cnst[1][3] <= roundcnst[j][2] || roundcnst[j][1] || roundcnst[j][0];  // OR operator
-            round_cnst[2][0] <= 0;
-            round_cnst[2][1] <= 0;
-            round_cnst[2][2] <= 2;
-            round_cnst[2][3] <= roundcnst[j][5] || roundcnst[j][4] || roundcnst[j][3];  // OR operator
-            round_cnst[3][0] <= 0;
-            round_cnst[3][1] <= 0;
-            round_cnst[3][2] <= 4;   
-            round_cnst[3][3] <= roundcnst[j][2] || roundcnst[j][1] || roundcnst[j][0];  // OR operator
-            Rconst_done <= 1;
-        end else begin
-            Rconst_done <= 0;  
-        end
+        Rconst_done <= 0;
+        case (round_state)
+            initial_state:begin
+                Rconst_done <= 0;
+                j <= 0; 
+                for (i = 0; i < 4; i = i + 1) begin
+                    for (m = 0; m < 4; m = m + 1) begin
+                        round_cnst[i][m] <= 0;
+                    end
+                end
+                if(strt_round)begin
+                    round_state <= update_round;
+                end
+                else begin
+                    round_state <= initial_state;
+                end
+            end
+            update_round : begin
+                j <= j + 1;
+                round_state <= do_roundcnst;
+            end
+            do_roundcnst : begin
+                round_cnst[0][0] <= 0;
+                round_cnst[0][1] <= 0;
+                round_cnst[0][2] <= 0;
+                round_cnst[0][3] <= roundcnst[j-1][5] || roundcnst[j-1][4] || roundcnst[j-1][3];   // OR operator
+                round_cnst[1][0] <= 0;
+                round_cnst[1][1] <= 0;
+                round_cnst[1][2] <= 1;
+                round_cnst[1][3] <= roundcnst[j-1][2] || roundcnst[j-1][1] || roundcnst[j-1][0];  // OR operator
+                round_cnst[2][0] <= 0;
+                round_cnst[2][1] <= 0;
+                round_cnst[2][2] <= 2;
+                round_cnst[2][3] <= roundcnst[j-1][5] || roundcnst[j-1][4] || roundcnst[j-1][3];  // OR operator
+                round_cnst[3][0] <= 0;
+                round_cnst[3][1] <= 0;
+                round_cnst[3][2] <= 4;   
+                round_cnst[3][3] <= roundcnst[j-1][2] || roundcnst[j-1][1] || roundcnst[j-1][0];  // OR operator
+                round_state <= done_round;
+            end
+            done_round: begin
+                Rconst_done <= 1;
+                round_state <= initial_state;
+            end
+            default: begin
+                round_state <= initial_state;
+            end
+        endcase
     end
 end
 

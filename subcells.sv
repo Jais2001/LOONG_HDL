@@ -8,10 +8,7 @@ module subcells (
 );
 
 integer m,n;
-
-initial begin
-    subcell_done <= 0;
-end
+reg [4:0] num; 
 
 reg [3:0] s_box[0:15];
 initial begin 
@@ -33,18 +30,57 @@ initial begin
     s_box[15] = 4'h6;
 end
 
-always @(posedge clock or negedge rst) begin 
-    if (!rst) begin
+reg[2:0] scell_state;
+localparam  initial_state = 3'd0;
+localparam  check_state  = 3'd1;
+localparam  dosub_state = 3'd2;
+localparam  done_state  = 3'd3;    
+
+always @(posedge clock or negedge rst) begin
+    if(~rst)begin
         subcell_done <= 0;
-    end else if (subcell_in) begin
-        for (m = 0; m < 4; m = m + 1) begin
-            for (n = 0; n < 4; n = n + 1) begin
-                out_matrix[m][n] <= s_box[in_matrix[m][n]];
-            end    
-        end
-        subcell_done <= 1;
-    end else begin
-        subcell_done <= 0;
+        num <= 0;
+        scell_state <= initial_state;
     end
-end    
+    else begin
+        subcell_done <= 0;
+        case (scell_state)
+            initial_state:begin
+                subcell_done <= 0;
+                num <= 0; 
+                for (m = 0; m < 4; m = m + 1) begin
+                    for (n = 0; n < 4; n = n + 1) begin
+                        out_matrix[m][n] <= 0;
+                    end
+                end  
+                scell_state <= check_state;
+            end 
+            check_state:begin
+                if (subcell_in) begin
+                    scell_state <= dosub_state;
+                end
+                else begin
+                    scell_state <= check_state;
+                end
+            end
+            dosub_state : begin
+                out_matrix[num/4][num%4] <= s_box[in_matrix[num/4][num%4]];
+                if (num == 5'd16) begin
+                    scell_state <= done_state;
+                end
+                else begin
+                    num <= num + 1;
+                    scell_state <= dosub_state;
+                end
+            end
+            done_state : begin
+                subcell_done <= 1;
+                scell_state <= initial_state;
+            end
+            default: begin
+                scell_state <= initial_state;
+            end
+        endcase
+    end
+end  
 endmodule

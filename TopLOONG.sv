@@ -22,12 +22,12 @@ uart_rx #(.CLKS_PER_BIT(434)) uart_in_text(
 );
 
 LOONG_ENC loong(
-    .clk(clck),
-    .reset(reset),
-    .do_loong(do_LOONG),
-    .plaintext(plain_text),
-    .roundKey(round_Key),
-    .ciphertext(ciphertext)
+    .i_clk(clck),
+    .i_reset(reset),
+    .i_do_loong(do_LOONG),
+    .i_plaintext(plain_text),
+    .i_roundKey(round_Key),
+    .o_ciphertext(ciphertext)
 );
 
 reg[1:0] uart_state;
