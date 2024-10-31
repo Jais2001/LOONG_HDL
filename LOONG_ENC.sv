@@ -11,6 +11,7 @@ wire uart_key_done;
 wire [7:0] in_key;
 
 reg do_mixrow;
+reg do_mix_coloumn;
 reg r_Rconst_cmplt;
 reg do_round;
 reg[3:0] r_ciphertext[0:15];
@@ -99,6 +100,7 @@ Mixcoloumn mixcoloumn(
     .clock(i_clk),
     .rst(i_reset),
     .st_mixcoloumn(state_mixrow),
+    .do_mix_coloumn(do_mix_coloumn),
     .mixc_state(ste_mxcoloumn),
     .mixcoloumn_done(mixcoloumn_cmplt)
 );
@@ -133,6 +135,7 @@ always @(posedge i_clk or negedge i_reset) begin
         do_subcell <= 0; 
         do_round <= 0;
         do_mixrow <= 0;
+        do_mix_coloumn <= 0;
         LOONG_Counter <= 6'd0;  
         g <= 0;
         h <= 0;
@@ -141,6 +144,7 @@ always @(posedge i_clk or negedge i_reset) begin
         do_round <= 0;
         do_subcell <= 0;
         do_mixrow <= 0;
+        do_mix_coloumn <= 0;
         case (loong_states)
             start_loong : begin
                 if (i_do_loong) begin
@@ -187,6 +191,7 @@ always @(posedge i_clk or negedge i_reset) begin
             Mixrow_state : begin //4 state
                 if(mixrow_cmplt == 1 )begin
                     state_mixrow <= ste_mxrow;
+                    do_mix_coloumn <= 1;
                     loong_states <= Mixcoloumn_state;
                 end
                 else begin

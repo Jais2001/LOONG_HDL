@@ -7,8 +7,8 @@ module subcells (
     output reg subcell_done
 );
 
-integer m,n;
-reg [4:0] num; 
+integer m,n,l,k,a,b;
+reg[3:0] r_subcell_matrix[0:3][0:3];
 
 reg [3:0] s_box[0:15];
 initial begin 
@@ -34,25 +34,41 @@ reg[2:0] scell_state;
 localparam  initial_state = 3'd0;
 localparam  check_state  = 3'd1;
 localparam  dosub_state = 3'd2;
-localparam  done_state  = 3'd3;    
+localparam  update_n    = 3'd3;
+localparam  update_m     = 3'd4;
+localparam  done_state  = 3'd5;    
+
+always @(posedge clock or negedge rst) begin
+    if (~rst) begin
+        for (a = 0; a < 4; a = a + 1) begin
+            for (b = 0; b < 4; b = b + 1) begin
+                r_subcell_matrix[a][b] <= 4'b0;
+            end
+        end
+    end else begin
+        r_subcell_matrix <= in_matrix;  // 1 clock cycle delay
+    end
+end
 
 always @(posedge clock or negedge rst) begin
     if(~rst)begin
         subcell_done <= 0;
-        num <= 0;
+        m<=0;
+        n<=0;
         scell_state <= initial_state;
+        for (l = 0; l < 4; l = l + 1) begin
+            for (k = 0; k < 4; k = k + 1) begin
+                out_matrix[l][k] <= 4'b0;
+            end
+        end
     end
     else begin
         subcell_done <= 0;
         case (scell_state)
             initial_state:begin
-                subcell_done <= 0;
-                num <= 0; 
-                for (m = 0; m < 4; m = m + 1) begin
-                    for (n = 0; n < 4; n = n + 1) begin
-                        out_matrix[m][n] <= 0;
-                    end
-                end  
+                m<=0;
+                n<=0;
+                subcell_done <= 0; 
                 scell_state <= check_state;
             end 
             check_state:begin
@@ -64,13 +80,25 @@ always @(posedge clock or negedge rst) begin
                 end
             end
             dosub_state : begin
-                out_matrix[num/4][num%4] <= s_box[in_matrix[num/4][num%4]];
-                if (num == 5'd16) begin
-                    scell_state <= done_state;
+                    out_matrix[m][n] <= s_box[r_subcell_matrix[m][n]];
+                    scell_state <= update_n;
+                    n <= n + 1;
+            end
+            update_n : begin
+                if (n < 4) begin
+                    scell_state <= dosub_state;
                 end
                 else begin
-                    num <= num + 1;
-                    scell_state <= dosub_state;
+                    n <= 0;
+                    m <= m + 1;
+                    scell_state <= update_m;
+                end
+            end
+            update_m : begin
+                if (m < 4) begin
+                    scell_state <= update_n;
+                end else begin
+                    scell_state <= done_state;
                 end
             end
             done_state : begin
@@ -84,3 +112,32 @@ always @(posedge clock or negedge rst) begin
     end
 end  
 endmodule
+
+
+
+// always @(posedge clock or negedge rst) begin 
+//     if (!rst) begin
+//         subcell_done <= 0;
+//     end else if (subcell_in) begin
+//         for (m = 0; m < 4; m = m + 1) begin
+//             for (n = 0; n < 4; n = n + 1) begin
+//                 out_matrix[m][n] <= s_box[in_matrix[m][n]];
+//             end    
+//         end
+//         subcell_done <= 1;
+//     end else begin
+//         subcell_done <= 0;
+//     end
+// end    
+
+
+// dosub_state : begin
+//     out_matrix[num/4][num%4] <= s_box[in_matrix[num/4][num%4]];
+//     if (num == 5'd16) begin
+//         scell_state <= done_state;
+//     end
+//     else begin
+//         num <= num + 1;
+//         scell_state <= dosub_state;
+//     end
+// end

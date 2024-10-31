@@ -28,7 +28,7 @@ task  WRITE_UART;
         for (i=0;i<8;i=i+1) begin
             text_key = in_data[i];
             // key = in_text[i];
-            $display("WRITE_UART - Assigning bit %0d: text = %b", i, text_key);
+            // $display("WRITE_UART - Assigning bit %0d: text = %b", i, text_key);
             #(c_BIT_PERIOD);
         end
         text_key = 1'b1;

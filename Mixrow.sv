@@ -9,10 +9,10 @@ module Mixrow(
 
 reg [3:0] ans;
 reg [7:0] temp_a;
-// reg [3:0] temp_b;
+reg[3:0] r_input_mixrow[0:3][0:3];
 reg check;
 reg [3:0]temp;
-integer i,j,k,l,a,m;
+integer i,j,k,l,a,m,c,b;
 
 reg [3:0] mixrow_matrix[3:0][3:0];
 initial begin
@@ -48,36 +48,30 @@ function [3:0] galiosmultiplication;
     end
 endfunction
 
-// always @(posedge clock or negedge rst) begin
-//     if (~rst) begin
-//         mixrow_done <= 0;
-//     end else begin
-//         if (mixrow_done == 0) begin
-//             for (j=0;j<4;j = j +1) begin
-//                 for (k=0;k<4;k = k +1) begin
-//                     temp = 4'b0000;
-//                     for (l = 0;l<4 ;l = l + 1) begin
-//                         temp = temp ^ galiosmultiplication(st_mixrow[j][l],mixrow_matrix[l][k]);
-//                     end
-//                     mixr_state[j][k] <= temp;
-//                 end      
-//             end
-//             mixrow_done <= 1;
-//         end else begin
-//             mixrow_done <= 0;
-//         end      
-//     end
-// end
-
 reg[2:0] mxrw_state; // states
 
 localparam initial_state = 3'd0;
 localparam do_mixrw = 3'd1;
 localparam update_l = 3'd2;
 localparam store_temp = 3'd3;
-localparam update_k = 3'd4;
-localparam update_j = 3'd5;
-localparam done_mxrow = 3'd6;
+localparam clear_temp = 3'd4;
+localparam update_k = 3'd5;
+localparam update_j = 3'd6;
+localparam done_mxrow = 3'd7;
+
+
+always @(posedge clock or negedge rst) begin
+    if (~rst) begin
+        for (c = 0; c < 4; c = c + 1) begin
+            for (b = 0; b < 4; b = b + 1) begin
+                r_input_mixrow[c][b] <= 4'b0;
+            end
+        end
+    end
+    else begin
+        r_input_mixrow <= st_mixrow;  // 1 clock cycle delay
+    end
+end
 
 always @(posedge clock or negedge rst) begin
     if (~rst) begin
@@ -106,7 +100,7 @@ always @(posedge clock or negedge rst) begin
                 end
            end
            do_mixrw:begin
-                temp = temp ^ galiosmultiplication(st_mixrow[j][l],mixrow_matrix[l][k]);
+                temp = temp ^ galiosmultiplication(r_input_mixrow[j][l],mixrow_matrix[l][k]);
                 l <= l + 1;
                 mxrw_state <= update_l;
            end
@@ -115,28 +109,31 @@ always @(posedge clock or negedge rst) begin
                     mxrw_state <= do_mixrw;
                 end 
                 else begin
+                    l <= 0;
                     mxrw_state <= store_temp;
                 end
            end
            store_temp:begin
                 mixr_state[j][k] <= temp;
+                k <= k + 1;
+                mxrw_state <= clear_temp;
+           end
+           clear_temp:begin
                 temp <= 4'b0000;
-                l <= 0;
                 mxrw_state <= update_k;
            end
            update_k : begin
-                if (k < 3) begin 
-                    k <= k + 1;
+                if (k < 4) begin 
                     mxrw_state <= update_l;
                 end
                 else begin
                     k <= 0;
+                    j <= j + 1;
                     mxrw_state <= update_j;
                 end
            end
            update_j : begin
-                if (j < 3) begin
-                    j <= j + 1;
+                if (j < 4) begin
                     mxrw_state <= update_k;
                 end
                 else begin
@@ -154,3 +151,27 @@ always @(posedge clock or negedge rst) begin
     end
 end
 endmodule
+
+
+
+
+// always @(posedge clock or negedge rst) begin
+//     if (~rst) begin
+//         mixrow_done <= 0;
+//     end else begin
+//         if (mixrow_done == 0) begin
+//             for (j=0;j<4;j = j +1) begin
+//                 for (k=0;k<4;k = k +1) begin
+//                     temp = 4'b0000;
+//                     for (l = 0;l<4 ;l = l + 1) begin
+//                         temp = temp ^ galiosmultiplication(st_mixrow[j][l],mixrow_matrix[l][k]);
+//                     end
+//                     mixr_state[j][k] <= temp;
+//                 end      
+//             end
+//             mixrow_done <= 1;
+//         end else begin
+//             mixrow_done <= 0;
+//         end      
+//     end
+// end
