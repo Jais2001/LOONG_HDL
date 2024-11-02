@@ -45,44 +45,45 @@ initial begin
     repeat(15) @(posedge clock);
 
     repeat(15) @(posedge clock);
-    WRITE_UART(8'hAA); //header
+    WRITE_UART(8'hAA); //header 
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+
+    WRITE_UART(8'hA1); // Plaintext 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00);  
+    WRITE_UART(8'h00); // Plaintext 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'h11); // Plaintext 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'h00); // Plaintext 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'hC1); // Plaintext 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'h00); // Plaintext 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00);  
+    WRITE_UART(8'h1E); // Plaintext 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'h00); // Plaintext 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00);  
+
+    WRITE_UART(8'h11); //Roundkey 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'h00); //Roundkey 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'h11); //Roundkey 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00);  
+    WRITE_UART(8'h00); //Roundkey 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'h11); //Roundkey 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00);  
+    WRITE_UART(8'h00); //Roundkey 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00);
+    WRITE_UART(8'h11); //Roundkey 8 bit
     repeat(15) @(posedge clock);
-    WRITE_UART(8'h00); 
+    WRITE_UART(8'h00); //Roundkey 8 bit
     repeat(15) @(posedge clock);
-    // WRITE_UART(8'h10); 
-    // repeat(15) @(posedge clock);
-    WRITE_UART(8'hFF); //footer
-    repeat(100000) @(posedge clock);
+
+    WRITE_UART(8'hFF); // footer 
+    repeat(15) @(posedge clock);
 end
 
 

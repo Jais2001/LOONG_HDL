@@ -105,30 +105,6 @@ Mixcoloumn mixcoloumn(
     .mixcoloumn_done(mixcoloumn_cmplt)
 );
 
-always @(posedge i_clk or negedge i_reset ) begin
-    if (~i_reset) begin
-        r_Rconst_cmplt <= 0;
-    end
-    else begin
-        r_Rconst_cmplt <= Rconst_cmplt;
-    end
-end
-
-always @(posedge i_clk or negedge i_reset ) begin
-    if (~i_reset) begin
-        for (i = 0; i < 4; i = i + 1) begin
-            for (m = 0; m < 4; m = m + 1) begin
-                round_key_buff[i][m] <= 0;
-            end
-        end
-    end
-    else begin
-        if (~r_Rconst_cmplt && Rconst_cmplt) begin
-            round_key_buff <= round_key;
-        end
-    end
-end
-
 always @(posedge i_clk or negedge i_reset) begin
     if(~i_reset)begin
         loong_states <= start_loong;
@@ -145,6 +121,7 @@ always @(posedge i_clk or negedge i_reset) begin
         do_subcell <= 0;
         do_mixrow <= 0;
         do_mix_coloumn <= 0;
+        round_key_buff <= round_key; // 1 clock delay
         case (loong_states)
             start_loong : begin
                 if (i_do_loong) begin
@@ -225,7 +202,7 @@ always @(posedge i_clk or negedge i_reset) begin
                             state[k][l] <= state_subcell2[k][l] ^ round_key_buff[k][l] ^ round_constant[k][l];
                         end
                     end
-                    if (LOONG_Counter <= 6'd16) begin // 16 rounds
+                    if (LOONG_Counter < 6'd15) begin // 16 rounds
                         LOONG_Counter <= LOONG_Counter + 1;
                         do_subcell <= 1;
                         loong_states <= SubCells_state1;

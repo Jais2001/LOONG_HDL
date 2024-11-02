@@ -58,18 +58,17 @@ always @(posedge clock or negedge rst) begin
     if (~rst) begin
         Rconst_done <= 0;  
         j <= 0;     
+        for (i = 0; i < 4; i = i + 1) begin
+            for (m = 0; m < 4; m = m + 1) begin
+                round_cnst[i][m] <= 0;
+            end
+        end
     end
     else begin
         Rconst_done <= 0;
         case (round_state)
             initial_state:begin
-                Rconst_done <= 0;
-                j <= 0; 
-                for (i = 0; i < 4; i = i + 1) begin
-                    for (m = 0; m < 4; m = m + 1) begin
-                        round_cnst[i][m] <= 0;
-                    end
-                end
+                Rconst_done <= 0; 
                 if(strt_round)begin
                     round_state <= update_round;
                 end

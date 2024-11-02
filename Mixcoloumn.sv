@@ -75,6 +75,11 @@ always @(posedge clock or negedge rst) begin
         mixcoloumn_state <= initial_state;
         mixcoloumn_done <= 0;
         temp <= 4'b0000;
+        for (a = 0; a < 4; a = a + 1) begin
+            for (m = 0; m < 4; m = m + 1) begin
+                mixc_state[a][m] <= 0;
+            end
+        end
     end
     else begin
         mixcoloumn_done <= 0;
@@ -84,11 +89,6 @@ always @(posedge clock or negedge rst) begin
                 l<=0;
                 k<=0;
                 temp <= 4'b0000;
-                for (a = 0; a < 4; a = a + 1) begin
-                    for (m = 0; m < 4; m = m + 1) begin
-                        mixc_state[a][m] <= 0;
-                    end
-                end
                 if (do_mix_coloumn == 1) begin
                     mixcoloumn_state <= do_mixclm;
                 end
