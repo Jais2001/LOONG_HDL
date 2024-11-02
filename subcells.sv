@@ -112,32 +112,3 @@ always @(posedge clock or negedge rst) begin
     end
 end  
 endmodule
-
-
-
-// always @(posedge clock or negedge rst) begin 
-//     if (!rst) begin
-//         subcell_done <= 0;
-//     end else if (subcell_in) begin
-//         for (m = 0; m < 4; m = m + 1) begin
-//             for (n = 0; n < 4; n = n + 1) begin
-//                 out_matrix[m][n] <= s_box[in_matrix[m][n]];
-//             end    
-//         end
-//         subcell_done <= 1;
-//     end else begin
-//         subcell_done <= 0;
-//     end
-// end    
-
-
-// dosub_state : begin
-//     out_matrix[num/4][num%4] <= s_box[in_matrix[num/4][num%4]];
-//     if (num == 5'd16) begin
-//         scell_state <= done_state;
-//     end
-//     else begin
-//         num <= num + 1;
-//         scell_state <= dosub_state;
-//     end
-// end

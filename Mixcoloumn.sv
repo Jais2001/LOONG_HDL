@@ -148,23 +148,3 @@ always @(posedge clock or negedge rst) begin
     end
 end
 endmodule
-// always @(posedge clock or negedge rst) begin
-//     if (~rst) begin
-//         mixcoloumn_done <= 0;
-//     end else begin
-//         if (mixcoloumn_done == 0) begin
-//             for (j=0;j<4;j = j +1) begin
-//                 for (k=0;k<4;k = k +1) begin
-//                     temp = 4'b0000;
-//                     for (l = 0;l<4 ;l = l +1) begin
-//                         temp = temp ^ galiosmultiplication(mixcoloumn_matrix[j][l],st_mixcoloumn[l][k]);
-//                     end
-//                     mixc_state[j][k] <= temp;
-//                 end      
-//             end
-//             mixcoloumn_done <= 1;    
-//         end else begin
-//             mixcoloumn_done <= 0;
-//         end
-//     end
-// end
